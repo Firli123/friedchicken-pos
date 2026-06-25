@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReportExport;
 
 class ReportController extends Controller
@@ -120,19 +119,18 @@ class ReportController extends Controller
         return $pdf->download($filename);
     }
 
-    public function exportExcel(Request $request)
-    {
-        $type = $request->input('type', 'daily');
-        $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
+   public function exportExcel(Request $request)
+{
+    $type = $request->input('type', 'daily');
+    $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
 
-        if ($type === 'monthly') {
-            $date = $request->filled('month')
-                ? Carbon::parse($request->month . '-01')
-                : Carbon::now()->startOfMonth();
-        }
-
-        $filename = 'laporan-' . ($type === 'daily' ? $date->format('Y-m-d') : $date->format('Y-m')) . '.xlsx';
-
-        return Excel::download(new ReportExport($date, $type), $filename);
+    if ($type === 'monthly') {
+        $date = $request->filled('month')
+            ? Carbon::parse($request->month . '-01')
+            : Carbon::now()->startOfMonth();
     }
+
+    $export = new ReportExport($date, $type);
+    return $export->download();
+}
 }

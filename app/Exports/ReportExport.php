@@ -4,85 +4,97 @@ namespace App\Exports;
 
 use App\Models\Transaction;
 use Illuminate\Support\Carbon;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class ReportExport implements FromCollection, WithHeadings, WithMapping, WithTitle, WithStyles
+class ReportExport
 {
     public function __construct(
         private Carbon $date,
         private string $type = 'daily'
     ) {}
 
-    public function collection()
+    public function download(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        return Transaction::with(['items', 'user'])
+        $transactions = Transaction::with(['items', 'user'])
             ->paid()
-            ->when($this->type === 'daily', fn ($q) => $q->whereDate('created_at', $this->date))
-            ->when($this->type === 'monthly', fn ($q) => $q
+            ->when($this->type === 'daily', fn($q) => $q->whereDate('created_at', $this->date))
+            ->when($this->type === 'monthly', fn($q) => $q
                 ->whereMonth('created_at', $this->date->month)
                 ->whereYear('created_at', $this->date->year))
             ->orderByDesc('created_at')
             ->get();
-    }
 
-    public function headings(): array
-    {
-        return [
-            'No. Transaksi',
-            'Tanggal',
-            'Jam',
-            'Kasir',
-            'Item',
-            'Subtotal',
-            'Diskon',
-            'Pajak',
-            'Total',
-            'Metode Bayar',
-            'Jumlah Bayar',
-            'Kembalian',
-            'Status',
-        ];
-    }
+        $label = $this->type === 'daily'
+            ? $this->date->format('d/m/Y')
+            : $this->date->format('F Y');
 
-    public function map($transaction): array
-    {
-        $items = $transaction->items
-            ->map(fn ($i) => $i->product_name . ' x' . $i->quantity)
-            ->join(', ');
+        $filename = 'laporan-' . ($this->type === 'daily'
+            ? $this->date->format('Y-m-d')
+            : $this->date->format('Y-m')) . '.csv';
 
-        return [
-            $transaction->number,
-            $transaction->created_at->format('d/m/Y'),
-            $transaction->created_at->format('H:i:s'),
-            $transaction->user->name,
-            $items,
-            $transaction->subtotal,
-            $transaction->discount,
-            $transaction->tax,
-            $transaction->total,
-            strtoupper($transaction->payment_method),
-            $transaction->amount_paid,
-            $transaction->change_amount,
-            ucfirst($transaction->payment_status),
-        ];
-    }
+        $totalRevenue = $transactions->sum('total');
+        $totalCash    = $transactions->where('payment_method', 'cash')->sum('total');
+        $totalQris    = $transactions->where('payment_method', 'qris')->sum('total');
+        $totalCount   = $transactions->count();
 
-    public function title(): string
-    {
-        return $this->type === 'daily'
-            ? 'Laporan ' . $this->date->format('d-m-Y')
-            : 'Laporan ' . $this->date->format('m-Y');
-    }
+        $type = $this->type;
 
-    public function styles(Worksheet $sheet): array
-    {
-        return [
-            1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'E53935']]],
-        ];
+        return response()->stream(function () use (
+            $transactions, $label, $totalRevenue,
+            $totalCash, $totalQris, $totalCount, $type
+        ) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($handle, ['FRIED CHICKEN POS - Laporan ' . ucfirst($type) . ' ' . $label], ';');
+            fputcsv($handle, [''], ';');
+            fputcsv($handle, ['RINGKASAN'], ';');
+            fputcsv($handle, ['Total Pendapatan', 'Rp' . number_format($totalRevenue, 0, ',', '.')], ';');
+            fputcsv($handle, ['Total Transaksi', $totalCount . ' transaksi'], ';');
+            fputcsv($handle, ['Pembayaran Cash', 'Rp' . number_format($totalCash, 0, ',', '.')], ';');
+            fputcsv($handle, ['Pembayaran QRIS', 'Rp' . number_format($totalQris, 0, ',', '.')], ';');
+            fputcsv($handle, [''], ';');
+
+            fputcsv($handle, [
+                'No. Transaksi', 'Tanggal', 'Jam', 'Kasir',
+                'Item Pesanan', 'Subtotal', 'Diskon', 'Pajak',
+                'Total', 'Metode Bayar', 'Dibayar', 'Kembalian', 'Status',
+            ], ';');
+
+            foreach ($transactions as $trx) {
+                $items = $trx->items
+                    ->map(fn($i) => $i->product_name . ' x' . $i->quantity)
+                    ->join(', ');
+
+                fputcsv($handle, [
+                    $trx->number,
+                    $trx->created_at->format('d/m/Y'),
+                    $trx->created_at->format('H:i:s'),
+                    $trx->user->name,
+                    $items,
+                    $trx->subtotal,
+                    $trx->discount,
+                    $trx->tax,
+                    $trx->total,
+                    strtoupper($trx->payment_method),
+                    $trx->amount_paid,
+                    $trx->change_amount,
+                    ucfirst($trx->payment_status),
+                ], ';');
+            }
+
+            fputcsv($handle, [''], ';');
+            fputcsv($handle, [
+                'TOTAL', '', '', '', '',
+                $transactions->sum('subtotal'),
+                '', '', $totalRevenue,
+                '', '', '', '',
+            ], ';');
+
+            fclose($handle);
+        }, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control'       => 'max-age=0',
+        ]);
     }
 }
