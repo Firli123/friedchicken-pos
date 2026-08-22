@@ -21,7 +21,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        // Logout user lama dulu jika ada
+        // Logout user lama jika masih ada session
         if (Auth::check()) {
             Auth::logout();
             $request->session()->invalidate();
@@ -42,7 +42,10 @@ class AuthController extends Controller
             'is_active' => true,
         ];
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Remember me: true = session 8 jam, false = session normal
+        $remember = $request->boolean('remember');
+
+        if (! Auth::attempt($credentials, $remember)) {
             throw ValidationException::withMessages([
                 'username' => 'Username atau password salah.',
             ]);
@@ -50,7 +53,15 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        ActivityLog::log('login', 'User ' . Auth::user()->name . ' berhasil login');
+        // Set lifetime session berdasarkan remember
+        if ($remember) {
+            config(['session.lifetime' => 480]); // 8 jam
+        }
+
+        ActivityLog::log(
+            'login',
+            'User ' . Auth::user()->name . ' berhasil login' . ($remember ? ' (ingat saya)' : '')
+        );
 
         return Auth::user()->isOwner()
             ? redirect()->route('dashboard')

@@ -17,7 +17,7 @@
         * { font-family:'Plus Jakarta Sans',sans-serif; box-sizing:border-box; }
         body { background:var(--bg); margin:0; overflow-x:hidden; }
 
-        /* Sidebar */
+        /* ── Sidebar ── */
         #sidebar {
             width:240px; height:100vh; background:var(--sidebar);
             position:fixed; top:0; left:0; z-index:1000;
@@ -28,11 +28,12 @@
 
         .sb-brand {
             padding:18px 20px; border-bottom:1px solid rgba(255,255,255,0.08);
-            display:flex; align-items:center; gap:10px;
+            display:flex; align-items:center; gap:10px; flex-shrink:0;
         }
         .sb-icon {
             width:40px; height:40px; background:var(--red); border-radius:10px;
-            display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.2rem; flex-shrink:0;
         }
         .sb-name { color:var(--yellow); font-size:0.92rem; font-weight:800; letter-spacing:0.5px; }
         .sb-sub { color:rgba(255,255,255,0.35); font-size:0.62rem; text-transform:uppercase; letter-spacing:1px; }
@@ -45,15 +46,15 @@
             display:flex; align-items:center; gap:10px; padding:0 20px;
             height:var(--touch); color:rgba(255,255,255,0.6); text-decoration:none;
             font-size:0.875rem; font-weight:500; border-left:3px solid transparent;
-            transition:all 0.2s;
+            transition:all 0.2s; flex-shrink:0;
         }
         .nav-link:hover { background:rgba(255,255,255,0.06); color:#fff; }
         .nav-link.active { background:rgba(229,57,53,0.15); color:#fff; border-left-color:var(--red); }
-        .nav-link i { font-size:1rem; width:20px; text-align:center; }
+        .nav-link i { font-size:1rem; width:20px; text-align:center; flex-shrink:0; }
 
         .sb-footer {
             margin-top:auto; padding:16px 20px;
-            border-top:1px solid rgba(255,255,255,0.08);
+            border-top:1px solid rgba(255,255,255,0.08); flex-shrink:0;
         }
         .sb-user { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
         .sb-avatar {
@@ -72,18 +73,18 @@
         }
         .btn-logout:hover { background:rgba(229,57,53,0.2); color:#fff; border-color:var(--red); }
 
-        /* Overlay */
+        /* ── Overlay ── */
         #overlay {
             display:none; position:fixed; inset:0;
             background:rgba(0,0,0,0.5); z-index:999; backdrop-filter:blur(2px);
         }
         #overlay.show { display:block; }
 
-        /* Main */
+        /* ── Main ── */
         #main { margin-left:240px; min-height:100vh; display:flex; flex-direction:column; transition:margin 0.3s; }
         #main.full { margin-left:0; }
 
-        /* Topbar */
+        /* ── Topbar ── */
         #topbar {
             background:#fff; border-bottom:1px solid var(--border);
             height:60px; padding:0 20px;
@@ -96,37 +97,41 @@
             width:44px; height:44px; border:none; background:#f5f5f5;
             border-radius:10px; display:flex; align-items:center; justify-content:center;
             font-size:1.2rem; cursor:pointer; transition:all 0.2s; color:#424242;
+            flex-shrink:0;
         }
         #menuBtn:hover { background:#ffe0e0; color:var(--red); }
         .page-title { font-size:1rem; font-weight:700; color:#1a1a1a; }
         #clock {
             font-size:0.82rem; color:#757575; background:#f5f5f5;
-            padding:6px 12px; border-radius:8px; font-weight:600;
+            padding:6px 12px; border-radius:8px; font-weight:600; white-space:nowrap;
         }
 
-        /* Content */
+        /* ── Content ── */
         #content { padding:20px; flex:1; }
 
-        /* Components */
+        /* ── Components ── */
         .pos-card { background:#fff; border-radius:14px; box-shadow:var(--shadow); border:1px solid var(--border); }
         .stat-card { background:#fff; border-radius:14px; padding:20px; box-shadow:var(--shadow); border:1px solid var(--border); }
+        .stat-label { font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#9e9e9e; }
+        .stat-value { font-size:1.5rem; font-weight:800; margin-top:4px; }
         .stat-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; }
         .table thead th {
             background:#fafafa; font-weight:700; font-size:0.75rem;
             text-transform:uppercase; letter-spacing:0.5px; color:#9e9e9e;
             border-bottom:2px solid var(--border); padding:12px 16px;
         }
-        .table td { padding:14px 16px; vertical-align:middle; }
+        .table td { padding:12px 16px; vertical-align:middle; }
         .btn-primary-pos {
             background:var(--red); color:#fff; border:none; border-radius:10px;
             padding:0 20px; font-weight:700; font-size:0.88rem;
             min-height:var(--touch); display:inline-flex; align-items:center; gap:6px;
             cursor:pointer; transition:all 0.2s; font-family:'Plus Jakarta Sans',sans-serif;
+            text-decoration:none;
         }
         .btn-primary-pos:hover { background:var(--red-dark); color:#fff; }
         .alert { border-radius:10px; border:none; }
 
-        /* Tablet */
+        /* ── Tablet ── */
         @media (max-width:1024px) {
             #sidebar { transform:translateX(-100%); }
             #sidebar.show { transform:translateX(0); }
@@ -177,12 +182,15 @@
             <i class="bi bi-people"></i> Pengguna
         </a>
 
-        <div class="nav-label">Laporan</div>
+        <div class="nav-label">Laporan & HPP</div>
         <a href="{{ route('reports.daily') }}" class="nav-link {{ request()->routeIs('reports.daily') ? 'active' : '' }}">
             <i class="bi bi-bar-chart-line"></i> Laporan Harian
         </a>
         <a href="{{ route('reports.monthly') }}" class="nav-link {{ request()->routeIs('reports.monthly') ? 'active' : '' }}">
             <i class="bi bi-calendar3"></i> Laporan Bulanan
+        </a>
+        <a href="{{ route('hpp.index') }}" class="nav-link {{ request()->routeIs('hpp.*') ? 'active' : '' }}">
+            <i class="bi bi-calculator"></i> HPP Harian
         </a>
 
         <div class="nav-label">Sistem</div>
@@ -246,7 +254,7 @@
         if (el) el.textContent = new Date().toLocaleTimeString('id-ID');
     }, 1000);
 
-    // Sidebar
+    // Sidebar toggle
     function toggleSB() {
         const sb = document.getElementById('sidebar');
         const ov = document.getElementById('overlay');

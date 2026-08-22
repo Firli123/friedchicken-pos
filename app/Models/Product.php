@@ -49,12 +49,15 @@ class Product extends Model
     }
 
     public function getImageUrlAttribute(): string
-    {
-        if ($this->image && file_exists(public_path('storage/' . $this->image))) {
+{
+    if ($this->image) {
+        $fullPath = storage_path('app/public/' . $this->image);
+        if (file_exists($fullPath)) {
             return asset('storage/' . $this->image);
         }
-        return asset('images/no-product.png');
     }
+    return ''; // kosong = tampilkan emoji
+}
 
     // -------------------------------------------------------
     // Scopes
@@ -68,7 +71,7 @@ class Product extends Model
     public function scopeByCategory($query, $categorySlug)
     {
         if ($categorySlug && $categorySlug !== 'all') {
-            return $query->whereHas('category', fn ($q) => $q->where('slug', $categorySlug));
+            return $query->whereHas('category', fn($q) => $q->where('slug', $categorySlug));
         }
         return $query;
     }
@@ -86,11 +89,18 @@ class Product extends Model
             default    => 'PRD',
         };
 
-        $last = static::where('code', 'like', $prefix . '-%')
-            ->orderByDesc('code')
-            ->value('code');
+        $existing = static::withTrashed()
+            ->where('code', 'like', $prefix . '-%')
+            ->pluck('code')
+            ->map(fn($c) => (int) substr($c, -3))
+            ->sort()
+            ->values();
 
-        $num = $last ? (int) substr($last, -3) + 1 : 1;
+        $num = 1;
+        foreach ($existing as $used) {
+            if ($used == $num) $num++;
+            else break;
+        }
 
         return $prefix . '-' . str_pad($num, 3, '0', STR_PAD_LEFT);
     }

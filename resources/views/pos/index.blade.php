@@ -40,15 +40,35 @@
 
     .prod-card {
         background:#fff; border-radius:14px; border:2.5px solid transparent;
-        padding:18px 10px; cursor:pointer; text-align:center;
+        padding:14px 10px; cursor:pointer; text-align:center;
         transition:all 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.06);
         user-select:none; -webkit-tap-highlight-color:transparent;
     }
     .prod-card:hover { border-color:#E53935; transform:translateY(-2px); box-shadow:0 6px 16px rgba(229,57,53,0.15); }
     .prod-card:active { transform:scale(0.95); }
-    .prod-emoji { font-size:2.4rem; display:block; margin-bottom:8px; }
+
+    /* Gambar Produk */
+    .prod-img {
+        width:90px; height:90px; object-fit:cover;
+        border-radius:14px; margin:0 auto 10px;
+        display:block;
+        box-shadow:0 4px 12px rgba(0,0,0,0.1);
+        transition:transform 0.2s ease;
+    }
+    .prod-card:hover .prod-img { transform:scale(1.05); }
+
+    .prod-emoji {
+        font-size:2.4rem; display:block;
+        margin-bottom:10px; text-align:center;
+        line-height:1;
+    }
+
     .prod-name { font-size:0.82rem; font-weight:700; color:#1a1a1a; line-height:1.3; margin-bottom:6px; }
     .prod-price { font-size:0.9rem; font-weight:800; color:#E53935; }
+
+    @media(max-width:768px) {
+        .prod-img { width:75px; height:75px; border-radius:12px; }
+    }
 
     /* RIGHT: Cart */
     .pos-right {
@@ -193,12 +213,24 @@
                      data-cat="{{ $cat->slug }}"
                      data-name="{{ strtolower($p->name) }}"
                      onclick="addCart({{ $p->id }},'{{ addslashes($p->name) }}',{{ $p->price }})">
-                    <span class="prod-emoji">
-                        @if($cat->slug==='paket')🍱
-                        @elseif($cat->slug==='tambahan')🍚
-                        @else🍗
-                        @endif
-                    </span>
+
+                    {{-- Gambar atau Emoji --}}
+                    @if($p->image && file_exists(storage_path('app/public/' . $p->image)))
+                        <img
+                            src="{{ asset('storage/' . $p->image) }}"
+                            alt="{{ $p->name }}"
+                            class="prod-img"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='block';"
+                        >
+                        <span class="prod-emoji" style="display:none;">
+                            @if($cat->slug==='paket')🍱@elseif($cat->slug==='tambahan')🍚@else🍗@endif
+                        </span>
+                    @else
+                        <span class="prod-emoji">
+                            @if($cat->slug==='paket')🍱@elseif($cat->slug==='tambahan')🍚@else🍗@endif
+                        </span>
+                    @endif
+
                     <div class="prod-name">{{ $p->name }}</div>
                     <div class="prod-price">Rp{{ number_format($p->price,0,',','.') }}</div>
                 </div>
@@ -493,7 +525,11 @@ async function confirmPay() {
 
 async function qrisFail() {
     if(!trxId) return;
-    await fetch(`/pos/qris/${trxId}/confirm`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':window.csrfToken},body:JSON.stringify({status:'failed'})});
+    await fetch(`/pos/qris/${trxId}/confirm`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':window.csrfToken},
+        body:JSON.stringify({status:'failed'})
+    });
     bootstrap.Modal.getInstance(document.getElementById('payModal')).hide();
     clearCart();
 }

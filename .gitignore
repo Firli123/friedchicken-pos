@@ -26,3 +26,4 @@ Thumbs.db
 /storage/framework/sessions/*
 /storage/framework/testing/*
 /storage/framework/views/*
+/database/database.sqlite
