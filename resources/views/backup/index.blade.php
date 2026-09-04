@@ -13,7 +13,7 @@
                 <i class="bi bi-cloud-arrow-up me-2"></i>Backup Database
             </h6>
             <p class="text-muted mb-4" style="font-size:0.82rem;">
-                Buat salinan database SQLite ke folder backup lokal. Lakukan backup rutin setiap hari.
+                Buat salinan database MySQL (format .sql) ke folder backup lokal. Lakukan backup rutin setiap hari.
             </p>
 
             <form action="{{ route('backup.create') }}" method="POST">
@@ -84,11 +84,11 @@
                   onsubmit="return confirm('PERHATIAN!\n\nSeluruh data saat ini akan digantikan dengan data dari file backup.\n\nYakin ingin melanjutkan restore?')">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label fw-600">Upload File Backup (.sqlite)</label>
+                    <label class="form-label fw-600">Upload File Backup (.sql)</label>
                     <input type="file" name="backup_file" class="form-control @error('backup_file') is-invalid @enderror"
-                           accept=".sqlite" required>
+                           accept=".sql" required>
                     @error('backup_file')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <small class="text-muted">Hanya file .sqlite yang valid</small>
+                    <small class="text-muted">Hanya file .sql yang valid</small>
                 </div>
 
                 <button type="submit" class="btn w-100 fw-700" style="background:#E53935;color:#fff;border-radius:10px;padding:12px;">
