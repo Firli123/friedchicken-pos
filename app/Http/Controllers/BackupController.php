@@ -6,23 +6,60 @@ use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
-use Symfony\Component\Process\Process as SymfonyProcess;
+use Symfony\Component\Process\Process;
+
 
 class BackupController extends Controller
 {
     /**
-     * Path ke executable mysqldump.
-     * Kalau di .env ada MYSQLDUMP_PATH, pakai itu.
-     * Kalau tidak, coba pakai 'mysqldump' saja (asumsi sudah ada di PATH sistem).
+     * Cari lokasi mysqldump secara otomatis.
+     * Urutan: MYSQLDUMP_PATH di .env → lokasi umum XAMPP/Laragon (Windows) →
+     * lokasi umum Linux/shared hosting → asumsi 'mysqldump' sudah ada di PATH.
+     * Dengan begini, project ini tidak perlu diedit ulang saat pindah dari
+     * laptop (Windows) ke hosting (Linux).
      */
     private function mysqldumpBinary(): string
     {
-        return env('MYSQLDUMP_PATH', 'mysqldump');
+        return $this->resolveBinary('MYSQLDUMP_PATH', 'mysqldump');
     }
 
     private function mysqlBinary(): string
     {
-        return env('MYSQL_PATH', 'mysql');
+        return $this->resolveBinary('MYSQL_PATH', 'mysql');
+    }
+
+    private function resolveBinary(string $envKey, string $binaryName): string
+    {
+        // 1. Kalau eksplisit diisi di .env, selalu pakai itu
+        if ($explicit = env($envKey)) {
+            return $explicit;
+        }
+
+        $exe = $binaryName . (PHP_OS_FAMILY === 'Windows' ? '.exe' : '');
+
+        // 2. Lokasi umum di Windows (XAMPP / Laragon) untuk development lokal
+        $windowsCandidates = [
+            "C:\\xampp\\mysql\\bin\\{$exe}",
+            "C:\\laragon\\bin\\mysql\\mysql-8.0\\bin\\{$exe}",
+        ];
+
+        // 3. Lokasi umum di Linux untuk shared hosting / VPS
+        $linuxCandidates = [
+            "/usr/bin/{$binaryName}",
+            "/usr/local/bin/{$binaryName}",
+            "/opt/lampp/bin/{$binaryName}",
+        ];
+
+        $candidates = PHP_OS_FAMILY === 'Windows' ? $windowsCandidates : $linuxCandidates;
+
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        // 4. Fallback: asumsikan sudah terdaftar di PATH sistem
+        return $binaryName;
     }
 
     private function dbConfig(): array
@@ -49,6 +86,10 @@ class BackupController extends Controller
 
     public function backup()
     {
+        if (! function_exists('proc_open')) {
+            return back()->with('error', 'Fitur backup tidak bisa jalan di hosting ini karena fungsi proc_open dinonaktifkan server. Hubungi provider hosting untuk mengaktifkannya, atau backup manual lewat phpMyAdmin > Ekspor.');
+        }
+
         $config = $this->dbConfig();
         $name   = 'backup-' . Carbon::now()->format('Ymd-His') . '.sql';
         $dest   = 'backups/' . $name;
@@ -100,6 +141,10 @@ class BackupController extends Controller
 
     public function restore(Request $request)
     {
+        if (! function_exists('proc_open')) {
+            return back()->with('error', 'Fitur restore tidak bisa jalan di hosting ini karena fungsi proc_open dinonaktifkan server. Hubungi provider hosting, atau restore manual lewat phpMyAdmin > Impor.');
+        }
+
         $request->validate([
             'backup_file' => ['required', 'file'],
         ]);

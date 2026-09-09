@@ -110,8 +110,8 @@
         #content { padding:20px; flex:1; }
 
         /* ── Components ── */
-        .pos-card { background:#fff; border-radius:14px; box-shadow:var(--shadow); border:1px solid var(--border); }
-        .stat-card { background:#fff; border-radius:14px; padding:20px; box-shadow:var(--shadow); border:1px solid var(--border); }
+        .pos-card { background:#fff; border-radius:14px; box-shadow:var(--shadow); border:1px solid var(--border); height:100%; }
+        .stat-card { background:#fff; border-radius:14px; padding:20px; box-shadow:var(--shadow); border:1px solid var(--border); height:100%; display:flex; flex-direction:column; justify-content:center; }
         .stat-label { font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#9e9e9e; }
         .stat-value { font-size:1.5rem; font-weight:800; margin-top:4px; }
         .stat-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; }
